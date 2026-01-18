@@ -108,7 +108,7 @@ app.get('/logout', (req, res) => {
 
 // Default route
 app.get('/', (req, res) => {
-    res.redirect('/pages/login.html');
+    res.redirect('/pages/index.html');
 });
 
 // Enforce HTTPS in production
