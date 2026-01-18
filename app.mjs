@@ -1,5 +1,9 @@
 import express from 'express';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+// __dirname support for ES modules
+const __dirname = dirname(fileURLToPath(import.meta.url));
 import { MongoClient } from 'mongodb';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -25,21 +29,31 @@ app.use(express.json());
 app.use(cors({ origin: /localhost/, credentials: true }));
 
 // Serve static HTML pages
-app.use('/pages', express.static(path.join(path.resolve(), 'pages')));
+app.use('/pages', express.static(path.join(__dirname, 'pages')));
 
 // Input validation helper
 function validateUserInput(username, password) {
     if (!username || !password) return false;
     if (typeof username !== 'string' || typeof password !== 'string') return false;
-    if (username.length < 3 || password.length < 6) return false;
+    if (username.length < 3) return false;
+    if (!isStrongPassword(password)) return false;
     return true;
+}
+
+// Password strength validation
+function isStrongPassword(password) {
+    // At least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+    return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/.test(password);
 }
 
 // Signup route
 app.post('/signup', async (req, res) => {
     const { username, password } = req.body;
-    if (!validateUserInput(username, password)) {
-        return res.status(400).send('Invalid username or password (min 3/6 chars)');
+    if (!username || !password || typeof username !== 'string' || typeof password !== 'string' || username.length < 3) {
+        return res.status(400).send('Invalid username or password (username min 3 chars)');
+    }
+    if (!isStrongPassword(password)) {
+        return res.status(400).send('Password must be at least 8 characters and include uppercase, lowercase, number, and special character.');
     }
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
